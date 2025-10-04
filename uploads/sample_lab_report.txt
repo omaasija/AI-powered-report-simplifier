@@ -1,0 +1,16 @@
+*** PATIENT LAB REPORT ***
+
+Patient ID: 98765
+Report Date: 2025-10-03
+
+--- Test Results ---
+
+Complete Blood Count:
+Hemoglobin: 10.1
+WBC: 8500
+Platelets: 485000
+
+Metabolic Panel:
+Sodium: 140
+
+--- End of Report ---
