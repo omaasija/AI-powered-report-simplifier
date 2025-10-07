@@ -19,6 +19,14 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 #all api endpoints
+@app.route('/', methods=['GET'])
+def index():
+    """A simple welcome route to confirm the API is running."""
+    return jsonify({
+        "status": "ok",
+        "message": "AI-Powered Medical Report Simplifier API is running."
+    })
+
 @app.route('/simplify-report-final', methods=['POST'])
 def simplify_report_final_output():
     #take the img or txt as input and return the final output json
