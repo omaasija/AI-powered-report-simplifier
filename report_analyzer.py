@@ -3,9 +3,8 @@ import sqlite3
 from database_utils import get_db_connection
 
 def normalize_tests(report_text):
-    """
-    Step 2: Takes raw text and converts it into a structured list of normalized test data.
-    """
+   #take raw report text and return a list of normalized test objects
+
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -51,10 +50,7 @@ def normalize_tests(report_text):
     return raw_test_lines, normalized_tests, 1.0 # Return confidence placeholder
 
 def generate_summary(normalized_tests):
-    """
-    Step 3: Takes a list of normalized tests and generates the patient-friendly summary
-    in the exact format requested by the problem statement.
-    """
+    # Generate a summary string and explanations for abnormal tests
     summary_parts = []
     explanations = []
     
@@ -88,9 +84,7 @@ def generate_summary(normalized_tests):
     }
 
 def generate_final_output(normalized_tests):
-    """
-    Step 4: Takes a list of normalized tests and generates the final, clean output.
-    """
+   # Generate the final output
     summary_obj = generate_summary(normalized_tests)
     
     # Filter out normal tests for the final output

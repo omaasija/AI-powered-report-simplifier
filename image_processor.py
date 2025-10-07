@@ -1,16 +1,15 @@
 import cv2
 import numpy as np
 import pytesseract
-import pandas as pd # New dependency for handling detailed OCR data
+import pandas as pd 
 from config import TESSERACT_CMD
 
-# --- Initialization ---
+#initialize tesseract cmd path
 pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
 
 def preprocess_image_for_ocr(image):
-    """
-    Applies a preprocessing pipeline to improve OCR accuracy.
-    """
+    #preprocess the image for better ocr results
+
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     try:
@@ -29,10 +28,9 @@ def preprocess_image_for_ocr(image):
     return final_thresh
 
 def extract_text_and_confidence_from_image(file_stream):
-    """
-    Reads an image, preprocesses it, and extracts text along with a calculated
-    average confidence score.
-    """
+   #read image
+   #preprocess image
+   #perform ocr and get confidence score
     image_bytes = np.frombuffer(file_stream.read(), np.uint8)
     image = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
     
@@ -41,8 +39,9 @@ def extract_text_and_confidence_from_image(file_stream):
 
     final_image = preprocess_image_for_ocr(image)
     
-    # Use image_to_data to get detailed information including confidence scores
+   
     # The output_type is set to DATAFRAME to make it easy to work with pandas
+    
     ocr_data = pytesseract.image_to_data(final_image, output_type=pytesseract.Output.DATAFRAME)
     
     # Filter out non-textual elements (where confidence is -1)

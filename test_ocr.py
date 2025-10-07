@@ -7,7 +7,6 @@ from PIL import Image
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 def preprocess_image_for_ocr(image_path):
-    """A simplified version of your preprocessing pipeline for testing."""
     try:
         image = cv2.imread(image_path)
         if image is None:
@@ -15,7 +14,7 @@ def preprocess_image_for_ocr(image_path):
             return None
         
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # Using a simple threshold for testing
+       
         _, binary = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
         print("--- Image preprocessing complete. ---")
         return binary
@@ -40,15 +39,15 @@ def run_ocr_test():
             print("----------------------")
 
             if "hemoglobin" in extracted_text.lower():
-                print("\n✅ SUCCESS: The script correctly identified 'hemoglobin'.")
+                print("\nSUCCESS: The script correctly identified 'hemoglobin'.")
             else:
-                print("\n❌ FAILURE: The script ran, but the OCR output did not contain the expected text.")
+                print("FAILURE: The script ran, but the OCR output did not contain the expected text.")
 
         except pytesseract.TesseractNotFoundError:
-            print("\n❌ CRITICAL FAILURE: Tesseract is not installed or not in your PATH.")
-            print("   Please install Tesseract or fix the path in the script.")
+            print("CRITICAL FAILURE: Tesseract is not installed or not in your PATH.")
+            print(" Please install Tesseract or fix the path in the script.")
         except Exception as e:
-            print(f"\n!!! ERROR during OCR: {e}")
+            print(f"! ERROR during OCR: {e}")
 
 if __name__ == '__main__':
     run_ocr_test()

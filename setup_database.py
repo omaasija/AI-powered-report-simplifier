@@ -1,9 +1,6 @@
 import sqlite3
-
-# --- Configuration ---
 DATABASE_FILE = 'database/knowledge_base.db'
 
-# This list contains the complete, corrected, and final data for your knowledge base.
 TESTS_DATA = [
     {
         "name": "Hemoglobin",
@@ -18,8 +15,8 @@ TESTS_DATA = [
     {
         "name": "WBC",
         "aliases": "WBCs,White Blood Cells,white blood cells,Leukocytes,White Blood Cell Count",
-        "ref_range_low": 4.0,  # Corrected for K/uL shorthand (e.g., 5.55)
-        "ref_range_high": 11.0, # Corrected for K/uL shorthand
+        "ref_range_low": 4.0, 
+        "ref_range_high": 11.0,
         "unit": "K/uL",
         "explanation_low": "A low white blood cell count can increase your risk of infection.",
         "explanation_high": "A high white blood cell count usually indicates your body is fighting off an infection.",
@@ -28,8 +25,8 @@ TESTS_DATA = [
     {
         "name": "Platelets",
         "aliases": "Thrombocytes,Platelet Count,platelet",
-        "ref_range_low": 150,  # Corrected for K/uL shorthand (e.g., 44.44 is low)
-        "ref_range_high": 450,   # Corrected for K/uL shorthand
+        "ref_range_low": 150,
+        "ref_range_high": 450,
         "unit": "K/uL",
         "explanation_low": "A low platelet count can lead to easy bruising and prolonged bleeding.",
         "explanation_high": "A high platelet count can increase the risk of blood clotting.",
@@ -58,9 +55,6 @@ TESTS_DATA = [
 ]
 
 def create_database():
-    """
-    Deletes the old database and creates a new one populated with the final data.
-    """
     try:
         conn = sqlite3.connect(DATABASE_FILE)
         cursor = conn.cursor()
@@ -103,7 +97,7 @@ def create_database():
 
 if __name__ == '__main__':
     create_database()
-    print("\n✅ Database setup is complete. You can now run your Flask app.")
+    print(" Database setup is complete. You can now run your Flask app.")
 
     # To run the database setup script, use the command:
     # python setup_database.py
