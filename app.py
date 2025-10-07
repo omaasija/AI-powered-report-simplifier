@@ -18,7 +18,40 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # --- NEW STEP-BY-STEP API ENDPOINTS ---
+@app.route('/simplify-report-final', methods=['POST'])
+def simplify_report_final_output():
+    """
+    A single, efficient endpoint that takes a file (text or image) and
+    returns the final, filtered analysis.
+    """
+    if 'report_file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part in the request."}), 400
+    
+    file = request.files['report_file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No selected file."}), 400
 
+    if not file or not allowed_file(file.filename):
+        return jsonify({"status": "error", "message": "File type not allowed."}), 400
+        
+    try:
+        if file.filename.lower().endswith('.txt'):
+            extracted_text = file.read().decode('utf-8')
+        else:
+            extracted_text = extract_text_from_image(file)
+
+        # Run the normalization step to get the full list of tests
+        _, normalized_data, _ = normalize_tests(extracted_text)
+        
+        # Call the final output function to filter and format the result
+        final_result = generate_final_output(normalized_data)
+        
+        return jsonify(final_result)
+
+    except Exception as e:
+        print(f"!!! An error occurred processing a file: {e}")
+        return jsonify({"status": "error", "message": "An unexpected error occurred while processing the file."}), 500
+    
 @app.route('/step1/extract', methods=['POST'])
 def step1_extract_text():
     """
