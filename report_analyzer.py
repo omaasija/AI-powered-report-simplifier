@@ -2,80 +2,103 @@ import re
 import sqlite3
 from database_utils import get_db_connection
 
-def process_report_text(report_text):
+def normalize_tests(report_text):
     """
-    The main analysis engine. Takes raw text, finds known medical tests using a
-    database-driven keyword map, calculates their status, and returns a structured result.
-
-    Args:
-        report_text (str): The raw text extracted from a report.
-
-    Returns:
-        dict: A dictionary containing the analysis results.
+    Step 2: Takes raw text and converts it into a structured list of normalized test data.
     """
-    normalized_tests, summary_parts = [], []
-    conn = None
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        knowledge_base = {}
-        cursor.execute("SELECT * FROM tests")
-        for test_info in cursor.fetchall():
-            canonical_name = test_info['name']
-            knowledge_base[canonical_name.lower()] = dict(test_info)
-            if test_info['aliases']:
-                for alias in test_info['aliases'].split(','):
-                    knowledge_base[alias.lower().strip()] = dict(test_info)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    knowledge_base = {}
+    cursor.execute("SELECT * FROM tests")
+    for test_info in cursor.fetchall():
+        canonical_name = test_info['name']
+        knowledge_base[canonical_name.lower()] = dict(test_info)
+        if test_info['aliases']:
+            for alias in test_info['aliases'].split(','):
+                knowledge_base[alias.lower().strip()] = dict(test_info)
 
-        report_lines = report_text.split('\n')
-        processed_lines = set()
+    normalized_tests = []
+    raw_test_lines = []
+    report_lines = report_text.split('\n')
+    processed_lines = set()
 
-        for i, line in enumerate(report_lines):
-            if i in processed_lines: continue
+    for i, line in enumerate(report_lines):
+        if i in processed_lines: continue
 
-            for keyword, test_info in knowledge_base.items():
-                # Ensure the keyword is not empty before creating a regex from it
-                if not keyword: continue
-
-                if keyword in line.lower():
-                    # Use a context-aware regex to find the number *after* the keyword
-                    match = re.search(f'{re.escape(keyword)}[^\\d]*([\\d\\.]+)', line, re.IGNORECASE)
+        for keyword, test_info in knowledge_base.items():
+            if keyword and keyword in line.lower():
+                match = re.search(f'{re.escape(keyword)}[^\\d]*([\\d\\.]+)', line, re.IGNORECASE)
+                
+                if match:
+                    raw_test_lines.append(line.strip())
+                    value = float(match.group(1))
+                    status = 'normal'
+                    ref_low, ref_high = test_info["ref_range_low"], test_info["ref_range_high"]
                     
-                    if match:
-                        value = float(match.group(1))
-                        status = 'normal'
-                        ref_low, ref_high = test_info["ref_range_low"], test_info["ref_range_high"]
-                        
-                        if value < ref_low: status = 'low'
-                        elif value > ref_high: status = 'high'
-                        
-                        if status != 'normal':
-                            explanation_key = f"explanation_{status}"
-                            test_output = {
-                                "name": test_info["name"], "value": value, "unit": test_info["unit"], 
-                                "status": status, "ref_range": { "low": ref_low, "high": ref_high }, 
-                                "explanation": test_info[explanation_key]
-                            }
-                            normalized_tests.append(test_output)
-                            summary_parts.append(f"{status.capitalize()} {test_info['name']}")
-                        
-                        processed_lines.add(i)
-                        break
+                    if value < ref_low: status = 'low'
+                    elif value > ref_high: status = 'high'
+                    
+                    normalized_test_obj = {
+                        "name": test_info["name"], "value": value, "unit": test_info["unit"], 
+                        "status": status, "ref_range": { "low": ref_low, "high": ref_high }
+                    }
+                    normalized_tests.append(normalized_test_obj)
+                    
+                    processed_lines.add(i)
+                    break 
+    conn.close()
+    return raw_test_lines, normalized_tests, 1.0 # Return confidence placeholder
 
-    except sqlite3.Error as e:
-        print(f"Database error during processing: {e}")
-        return {"status": "error", "message": "A database error occurred."}
-    finally:
-        if conn:
-            conn.close()
+def generate_summary(normalized_tests):
+    """
+    Step 3: Takes a list of normalized tests and generates the patient-friendly summary
+    in the exact format requested by the problem statement.
+    """
+    summary_parts = []
+    explanations = []
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    if not summary_parts:
-        return {"status": "ok", "message": "No abnormal test results were found from the list of known tests."}
+    for test in normalized_tests:
+        if test['status'] != 'normal':
+            # Create the summary part with lowercase, e.g., "low hemoglobin"
+            summary_parts.append(f"{test['status']} {test['name'].lower()}")
+            
+            # Fetch the explanation for this specific test
+            cursor.execute("SELECT explanation_low, explanation_high FROM tests WHERE name = ?", (test['name'],))
+            explanation_info = cursor.fetchone()
+            if explanation_info:
+                explanation_key = f"explanation_{test['status']}"
+                explanations.append(explanation_info[explanation_key])
+
+    conn.close()
+    
+    # Join the parts and capitalize the first letter, e.g., "Low hemoglobin and high wbc."
+    summary_text = " and ".join(summary_parts)
+    if summary_text:
+        summary_text = summary_text[0].upper() + summary_text[1:] + "."
+    else:
+        summary_text = "All test results are within the normal range."
     
     return {
-        "status": "ok", 
-        "summary": "Your report shows: " + " and ".join(summary_parts) + ".",
-        "tests": normalized_tests
+        "summary": summary_text,
+        "explanations": explanations
+    }
+
+def generate_final_output(normalized_tests):
+    """
+    Step 4: Takes a list of normalized tests and generates the final, clean output.
+    """
+    summary_obj = generate_summary(normalized_tests)
+    
+    # Filter out normal tests for the final output
+    abnormal_tests = [test for test in normalized_tests if test['status'] != 'normal']
+    
+    return {
+        "tests": abnormal_tests,
+        "summary": summary_obj['summary'],
+        "status": "ok"
     }
 

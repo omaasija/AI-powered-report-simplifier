@@ -4,11 +4,10 @@ import sqlite3
 DATABASE_FILE = 'database/knowledge_base.db'
 
 # This list contains the complete, corrected, and final data for your knowledge base.
-# It includes comprehensive aliases and corrected reference ranges for shorthand units.
 TESTS_DATA = [
     {
         "name": "Hemoglobin",
-        "aliases": "Haemoglobin,Hgb,haemogloBin,HGB,hemogloBin,hemoglobin",
+        "aliases": "Haemoglobin,Hgb,haemogloBin,HGB,hemogloBin",
         "ref_range_low": 13.2,
         "ref_range_high": 16.6,
         "unit": "g/dL",
@@ -18,7 +17,7 @@ TESTS_DATA = [
     },
     {
         "name": "WBC",
-        "aliases": "WBCs,White Blood Cells,white blood cells,Leukocytes,White Blood Cell Count,wbc",
+        "aliases": "WBCs,White Blood Cells,white blood cells,Leukocytes,White Blood Cell Count",
         "ref_range_low": 4.0,  # Corrected for K/uL shorthand (e.g., 5.55)
         "ref_range_high": 11.0, # Corrected for K/uL shorthand
         "unit": "K/uL",
@@ -28,8 +27,8 @@ TESTS_DATA = [
     },
     {
         "name": "Platelets",
-        "aliases": "Thrombocytes,Platelet Count,platelet,platelets",
-        "ref_range_low": 150,  # Corrected for K/uL shorthand (e.g., 44.44)
+        "aliases": "Thrombocytes,Platelet Count,platelet",
+        "ref_range_low": 150,  # Corrected for K/uL shorthand (e.g., 44.44 is low)
         "ref_range_high": 450,   # Corrected for K/uL shorthand
         "unit": "K/uL",
         "explanation_low": "A low platelet count can lead to easy bruising and prolonged bleeding.",
@@ -48,7 +47,7 @@ TESTS_DATA = [
     },
     {
         "name": "Sodium",
-        "aliases": "Na,Sodum,sodium,Sodium",
+        "aliases": "Na,Sodum,sodium",
         "ref_range_low": 135,
         "ref_range_high": 145,
         "unit": "mEq/L",
@@ -60,35 +59,25 @@ TESTS_DATA = [
 
 def create_database():
     """
-    Deletes the old database (if it exists) and creates a new one
-    populated with the final, correct data from the TESTS_DATA list.
+    Deletes the old database and creates a new one populated with the final data.
     """
     try:
         conn = sqlite3.connect(DATABASE_FILE)
         cursor = conn.cursor()
-        print(f"--- Successfully connected to {DATABASE_FILE} ---")
+        print(f"--- Connected to {DATABASE_FILE} ---")
 
-        # Drop the old table to ensure a clean start
         cursor.execute("DROP TABLE IF EXISTS tests")
         print("--- Dropped old 'tests' table. ---")
 
-        # Create the new, correct table schema
         cursor.execute("""
         CREATE TABLE tests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            aliases TEXT,
-            ref_range_low REAL NOT NULL,
-            ref_range_high REAL NOT NULL,
-            unit TEXT NOT NULL,
-            explanation_low TEXT,
-            explanation_high TEXT,
-            explanation_normal TEXT
+            id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, aliases TEXT,
+            ref_range_low REAL NOT NULL, ref_range_high REAL NOT NULL, unit TEXT NOT NULL,
+            explanation_low TEXT, explanation_high TEXT, explanation_normal TEXT
         )
         """)
-        print("--- Created new 'tests' table with 'aliases' column. ---")
+        print("--- Created new 'tests' table. ---")
 
-        # Prepare the data for insertion
         data_to_insert = [
             (
                 test['name'], test['aliases'], test['ref_range_low'], test['ref_range_high'],
@@ -96,16 +85,14 @@ def create_database():
             ) for test in TESTS_DATA
         ]
 
-        # Insert all the data
-        cursor.executemany("""
-        INSERT INTO tests (name, aliases, ref_range_low, ref_range_high, unit, explanation_low, explanation_high, explanation_normal)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, data_to_insert)
+        cursor.executemany(
+            "INSERT INTO tests (name, aliases, ref_range_low, ref_range_high, unit, explanation_low, explanation_high, explanation_normal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            data_to_insert
+        )
         
-        print(f"--- Successfully inserted {cursor.rowcount} records into the 'tests' table. ---")
-
+        print(f"--- Inserted {cursor.rowcount} records. ---")
         conn.commit()
-        print("--- Database changes have been committed. ---")
+        print("--- Database changes committed. ---")
 
     except sqlite3.Error as e:
         print(f"!!! Database error: {e} !!!")
@@ -118,7 +105,7 @@ if __name__ == '__main__':
     create_database()
     print("\n✅ Database setup is complete. You can now run your Flask app.")
 
-
-
-### **Step 2: Rebuild Your Database**
+    # To run the database setup script, use the command:
+    # python setup_database.py
+    
 

@@ -1,0 +1,7 @@
+venv/
+pycache/
+*.pyc
+database/knowledge_base.db
+uploads/
+.DS_Store
+Thumbs.db
