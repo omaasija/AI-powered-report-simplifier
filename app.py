@@ -27,6 +27,38 @@ def index():
         "message": "AI-Powered Medical Report Simplifier API is running."
     })
 
+@app.route('/tests', methods=['POST'])
+def add_test():
+    """Endpoint for adding a new test to the knowledge base."""
+    data = request.get_json()
+    required_fields = ['name', 'ref_range_low', 'ref_range_high', 'unit', 'explanation_low', 'explanation_high', 'explanation_normal']
+    if not all(field in data for field in required_fields):
+        return jsonify({"status": "error", "message": "Missing one or more required fields."}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO tests (name, aliases, ref_range_low, ref_range_high, unit, explanation_low, explanation_high, explanation_normal) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data['name'], data.get('aliases', ''), data['ref_range_low'], 
+            data['ref_range_high'], data['unit'], data['explanation_low'], 
+            data['explanation_high'], data['explanation_normal']
+        ))
+        conn.commit()
+        return jsonify({"status": "success", "message": f"Test '{data['name']}' added successfully."}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({"status": "error", "message": f"Test '{data['name']}' already exists."}), 409
+    except sqlite3.Error as e:
+        print(f"Database error adding test: {e}")
+        return jsonify({"status": "error", "message": "A database error occurred."}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route('/simplify-report-final', methods=['POST'])
 def simplify_report_final_output():
     #take the img or txt as input and return the final output json
