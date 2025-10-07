@@ -18,6 +18,15 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+
+
+
+from flask import Flask, request, jsonify
+# ... other imports: allowed_file, extract_text_and_confidence_from_image, normalize_tests, generate_summary
+
+app = Flask(__name__)
+
 #all api endpoints
 @app.route('/', methods=['GET'])
 def index():
@@ -59,7 +68,6 @@ def add_test():
         if conn:
             conn.close()
 
-
 @app.route('/simplify-report-final', methods=['POST'])
 def simplify_report_final_output():
     #take the img or txt as input and return the final output json
@@ -91,9 +99,10 @@ def simplify_report_final_output():
         print(f"!!! An error occurred processing a file: {e}")
         return jsonify({"status": "error", "message": "An unexpected error occurred while processing the file."}), 500
     
+# NO CHANGES NEEDED HERE - This already produces the correct output for Step 1.
 @app.route('/step1/extract', methods=['POST'])
 def step1_extract_text():
-   #take img or txt file and return the extracted text with a dynamic ocr confidence score
+    # Takes an image or .txt file and returns the extracted raw test lines.
     if 'report_file' not in request.files:
         return jsonify({"status": "error", "message": "No file part in the request."}), 400
 
@@ -105,45 +114,48 @@ def step1_extract_text():
         return jsonify({"status": "error", "message": "File type not allowed."}), 400
 
     try:
-        ocr_confidence = 1.0 #default confidence for text files
+        ocr_confidence = 1.0 # Default confidence for text files
         if file.filename.lower().endswith('.txt'):
             extracted_text = file.read().decode('utf-8')
         else:
-           #returns both the extracted text and the confidence score
             extracted_text, ocr_confidence = extract_text_and_confidence_from_image(file)
 
-      #normalize the extracted text to get the raw lines for output
+        # This part correctly identifies the raw lines to be passed to the next step.
         raw_lines, _, _ = normalize_tests(extracted_text)
 
         return jsonify({
             "tests_raw": raw_lines,
-            "confidence": round(ocr_confidence, 2) 
-           
+            "confidence": round(ocr_confidence, 2)
         })
 
     except Exception as e:
         print(f"!!! An error occurred in Step 1: {e}")
         return jsonify({"status": "error", "message": "An error occurred during text extraction."}), 500
 
+# CORRECTED STEP 2: Now accepts 'tests_raw' as input.
 @app.route('/step2/normalize', methods=['POST'])
 def step2_normalize_data():
-  #take raw text from step 1 and return the normalized test data
-  #  with a dynamic normalization confidence score
+    # Takes 'tests_raw' from Step 1 and returns the normalized test data.
     data = request.get_json()
-    if not data or 'full_text' not in data:
-        return jsonify({"status": "error", "message": "Invalid input. 'full_text' from Step 1 is required."}), 400
+    
+    # 1. VALIDATION CHANGED: Check for 'tests_raw' instead of 'full_text'.
+    if not data or 'tests_raw' not in data:
+        return jsonify({"status": "error", "message": "Invalid input. 'tests_raw' array from Step 1 is required."}), 400
 
-    #returns three values, we only need the second and third
-    _, normalized_data, norm_confidence = normalize_tests(data['full_text'])
+    # 2. FUNCTION CALL CHANGED: Join the list of raw tests into a single string.
+    # This allows the normalize_tests function to work on the combined text.
+    full_text_from_raw = "\n".join(data['tests_raw'])
+    _, normalized_data, norm_confidence = normalize_tests(full_text_from_raw)
 
     return jsonify({
         "tests": normalized_data,
-        "normalization_confidence": round(norm_confidence, 2) # Use the dynamic score
+        "normalization_confidence": round(norm_confidence, 2)
     })
 
+# NO CHANGES NEEDED HERE - This correctly uses the output from Step 2.
 @app.route('/step3/summarize', methods=['POST'])
 def step3_get_summary():
-   #take the normalized test data from Step 2 and return the patient-friendly summary
+    # Takes the normalized test data from Step 2 and returns the patient-friendly summary.
     data = request.get_json()
     if not data or 'tests' not in data:
         return jsonify({"status": "error", "message": "Invalid input. 'tests' array from Step 2 is required."}), 400
