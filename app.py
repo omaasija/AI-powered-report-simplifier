@@ -28,6 +28,7 @@ def index():
     })
 
 @app.route('/tests', methods=['POST'])
+#add a new test to the knowledge base
 def add_test():
     """Endpoint for adding a new test to the knowledge base."""
     data = request.get_json()
